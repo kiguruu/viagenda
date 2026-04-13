@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useId } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -48,6 +48,12 @@ export function EventModal({
   onDelete,
   initialEvent,
 }: EventModalProps) {
+  const titleId = useId();
+  const startId = useId();
+  const endId = useId();
+  const locationId = useId();
+  const descriptionId = useId();
+
   const {
     register,
     handleSubmit,
@@ -85,7 +91,6 @@ export function EventModal({
   }, [initialEvent, reset, isOpen]);
 
   const handleFormSubmit = (data: FormValues) => {
-    // ID生成はイベントハンドラ内で行う（不純な操作でもOK）
     const eventId = initialEvent?.id || crypto.randomUUID();
     
     onSubmit({
@@ -106,29 +111,30 @@ export function EventModal({
         <form onSubmit={handleSubmit(handleFormSubmit)}>
           <FieldGroup className="py-4">
             <Field>
-              <FieldLabel>タイトル</FieldLabel>
-              <Input {...register("title")} placeholder="例: 札幌駅到着" />
+              <FieldLabel htmlFor={titleId}>タイトル</FieldLabel>
+              <Input id={titleId} {...register("title")} placeholder="例: 札幌駅到着" />
               <FieldError errors={[errors.title]} />
             </Field>
             <div className="grid grid-cols-2 gap-4">
               <Field>
-                <FieldLabel>開始日時</FieldLabel>
-                <Input type="datetime-local" {...register("start")} />
+                <FieldLabel htmlFor={startId}>開始日時</FieldLabel>
+                <Input id={startId} type="datetime-local" {...register("start")} />
                 <FieldError errors={[errors.start]} />
               </Field>
               <Field>
-                <FieldLabel>終了日時</FieldLabel>
-                <Input type="datetime-local" {...register("end")} />
+                <FieldLabel htmlFor={endId}>終了日時</FieldLabel>
+                <Input id={endId} type="datetime-local" {...register("end")} />
                 <FieldError errors={[errors.end]} />
               </Field>
             </div>
             <Field>
-              <FieldLabel>場所</FieldLabel>
-              <Input {...register("location")} placeholder="例: 札幌駅" />
+              <FieldLabel htmlFor={locationId}>場所</FieldLabel>
+              <Input id={locationId} {...register("location")} placeholder="例: 札幌駅" />
             </Field>
             <Field>
-              <FieldLabel>詳細</FieldLabel>
+              <FieldLabel htmlFor={descriptionId}>詳細</FieldLabel>
               <Textarea
+                id={descriptionId}
                 {...register("description")}
                 placeholder="例: 快速エアポートで到着"
               />
