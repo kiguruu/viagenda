@@ -85,7 +85,7 @@
 - **状態管理**: `hooks/useLocalStorage.ts` を作成し、`localStorage` との同期を実装。
 - **UIコンポーネント**: `shadcn/ui` (Tailwind v4 対応) を導入。`Dialog`, `Form`, `Input`, `Textarea`, `Button` 等を使用。
 - **機能実装**: カレンダー上でのドラッグ＆ドロップ、リサイズ、クリックによる予定の作成・編集・削除機能を完備。
-- **データ連携**: JSON形式でのインポート/エクスポートボタンをヘッダーに実装。
+- **データ連携**: JSON形式および .ics (iCalendar) 形式でのエクスポートボタンを実装。JSON形式でのインポート機能も完備。
 - **テスト実装**: `bun test` を導入。`useLocalStorage` フックおよび `EventModal` コンポーネントのテストを作成し、正常動作を確認。
 - **ビルド確認**: TypeScriptの型エラー（FullCalendar v6固有の型インポート）を修正し、`next build` が通ることを確認。
 

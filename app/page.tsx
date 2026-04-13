@@ -10,7 +10,7 @@ import { TravelEvent } from "@/types/event";
 import { EventDropArg, DateSelectArg, EventClickArg, EventResizeDoneArg } from "@fullcalendar/core";
 import { EventModal } from "@/components/EventModal";
 import { Button } from "@/components/ui/button";
-import { DownloadIcon, UploadIcon, PlusIcon } from "lucide-react";
+import { DownloadIcon, UploadIcon, PlusIcon, CalendarIcon } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { createEvents, EventAttributes } from "ics";
 
 const INITIAL_EVENTS: TravelEvent[] = [
   {
@@ -55,7 +56,6 @@ export default function Home() {
   useEffect(() => {
     const data = getStoredData();
     if (data && data.length > 0) {
-      // 非同期的に呼び出すことで、レンダリング中（cascading render）の警告を回避
       const timer = setTimeout(() => {
         setPendingEvents(data);
         setShowLoadConfirm(true);
@@ -147,7 +147,7 @@ export default function Home() {
   };
 
   // エクスポート (JSON)
-  const handleExport = () => {
+  const handleExportJSON = () => {
     const blob = new Blob([JSON.stringify(events, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -157,6 +157,52 @@ export default function Home() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  // エクスポート (.ics)
+  const handleExportICS = () => {
+    const icsEvents: EventAttributes[] = events.map((event) => {
+      const start = new Date(event.start);
+      const end = new Date(event.end);
+
+      return {
+        title: event.title,
+        description: event.description,
+        location: event.location,
+        start: [
+          start.getFullYear(),
+          start.getMonth() + 1,
+          start.getDate(),
+          start.getHours(),
+          start.getMinutes(),
+        ],
+        end: [
+          end.getFullYear(),
+          end.getMonth() + 1,
+          end.getDate(),
+          end.getHours(),
+          end.getMinutes(),
+        ],
+      };
+    });
+
+    createEvents(icsEvents, (error, value) => {
+      if (error) {
+        console.error(error);
+        alert("iCalendar形式の生成に失敗しました。");
+        return;
+      }
+
+      const blob = new Blob([value], { type: "text/calendar;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `viagenda-itinerary-${new Date().toISOString().split('T')[0]}.ics`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    });
   };
 
   // インポート (JSON)
@@ -203,10 +249,16 @@ export default function Home() {
             <UploadIcon className="size-4" data-icon="inline-start" />
             インポート
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <DownloadIcon className="size-4" data-icon="inline-start" />
-            エクスポート
-          </Button>
+          <div className="flex gap-1">
+            <Button variant="outline" size="sm" onClick={handleExportJSON}>
+              <DownloadIcon className="size-4" data-icon="inline-start" />
+              JSON出力
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleExportICS}>
+              <CalendarIcon className="size-4" data-icon="inline-start" />
+              ICS出力
+            </Button>
+          </div>
           <Button size="sm" onClick={handleAddNew}>
             <PlusIcon className="size-4" data-icon="inline-start" />
             予定を追加
