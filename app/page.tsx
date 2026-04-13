@@ -1,65 +1,97 @@
-import Image from "next/image";
+"use client";
+
+import React from "react";
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import interactionPlugin from "@fullcalendar/interaction";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { TravelEvent } from "@/types/event";
+import { EventDropArg } from "@fullcalendar/interaction";
+import { EventResizeDoneArg } from "@fullcalendar/interaction";
+
+const INITIAL_EVENTS: TravelEvent[] = [
+  {
+    id: "event-001",
+    title: "札幌駅到着",
+    start: "2026-05-01T10:00:00",
+    end: "2026-05-01T10:30:00",
+    description: "快速エアポートで到着",
+    location: "札幌駅"
+  },
+  {
+    id: "event-002",
+    title: "余市蒸溜所見学",
+    start: "2026-05-02T13:00:00",
+    end: "2026-05-02T15:00:00",
+    description: "試飲あり。事前に予約チケットの確認。",
+    location: "ニッカウヰスキー 北海道工場 余市蒸溜所"
+  }
+];
 
 export default function Home() {
+  const [events, setEvents] = useLocalStorage<TravelEvent[]>("travel-events", INITIAL_EVENTS);
+
+  // イベントがドラッグで移動された時の処理
+  const handleEventDrop = (info: EventDropArg) => {
+    const updatedEvents = events.map((event) => {
+      if (event.id === info.event.id) {
+        return {
+          ...event,
+          start: info.event.startStr,
+          end: info.event.endStr || info.event.startStr, // endがない場合はstartと同じにする
+        };
+      }
+      return event;
+    });
+    setEvents(updatedEvents);
+  };
+
+  // イベントの時間が変更（リサイズ）された時の処理
+  const handleEventResize = (info: EventResizeDoneArg) => {
+    const updatedEvents = events.map((event) => {
+      if (event.id === info.event.id) {
+        return {
+          ...event,
+          start: info.event.startStr,
+          end: info.event.endStr || info.event.startStr,
+        };
+      }
+      return event;
+    });
+    setEvents(updatedEvents);
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full text-slate-900">
+      <header className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">Viagenda</h1>
+        <p className="text-muted-foreground mt-2">
+          旅行の日程を直感的に管理しましょう。
+        </p>
+      </header>
+
+      <div className="bg-white rounded-xl shadow-sm border p-4">
+        <FullCalendar
+          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+          initialView="timeGridWeek"
+          initialDate="2026-05-01"
+          headerToolbar={{
+            left: "prev,next today",
+            center: "title",
+            right: "dayGridMonth,timeGridWeek,timeGridDay",
+          }}
+          locale="ja"
+          events={events}
+          height="auto"
+          stickyHeaderDates={true}
+          nowIndicator={true}
+          editable={true}
+          selectable={true}
+          eventDrop={handleEventDrop}
+          eventResize={handleEventResize}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
