@@ -57,25 +57,33 @@
 
 ## 開発ロードマップ（小さなステップで進める）
 ### Step 1: 基礎環境構築とカレンダー表示
-- [ ] Next.jsプロジェクトのセットアップ (ユーザーが行うので、内容と開発サーバーが動作するかのみ確認してください。)
-- [ ] FullCalendarのインストールと静的カレンダーの表示。
-- [ ] 仮のハードコードされたデータ（上記JSONのようなもの）をカレンダー上に表示させる。
+- [x] Next.jsプロジェクトのセットアップ (ユーザーが行うので、内容と開発サーバーが動作するかのみ確認してください。)
+- [x] FullCalendarのインストールと静的カレンダーの表示。
+- [x] 仮のハードコードされたデータ（上記JSONのようなもの）をカレンダー上に表示させる。
 
 ### Step 2: 状態管理と localStorage 連携
-- [ ] イベントデータをReactの useState で管理する。
-- [ ] useEffect を使い、状態が変化するたびに localStorage に保存するカスタムフック (useLocalStorage) を作成。
-- [ ] 初回レンダリング時に localStorage からデータを読み込む処理を実装。
+- [x] イベントデータをReactの useState で管理する。
+- [x] useEffect を使い、状態が変化するたびに localStorage に保存するカスタムフック (useLocalStorage) を作成。
+- [x] 初回レンダリング時に localStorage からデータを読み込む処理を実装。
 ※Chromeなどのブラウザで、リロードしても予定が消えないことを確認する。
 
 ### Step 3: ドラッグ＆ドロップ機能の有効化
-- [ ] FullCalendarの editable={true} などのプロパティを設定。
-- [ ] eventDrop (移動時) と eventResize (時間変更時) のコールバック関数を実装し、状態（およびlocalStorage）を更新する。
+- [x] FullCalendarの editable={true} などのプロパティを設定。
+- [x] eventDrop (移動時) と eventResize (時間変更時) のコールバック関数を実装し、状態（およびlocalStorage）を更新する。
 
 ### Step 4: CRUD UIの実装 (フォーム作成)
-- [ ] カレンダーのクリックイベント（dateClick）を取得。
-- [ ] 予定のタイトルや詳細を入力するモーダル（ダイアログ）UIを作成。
-- [ ] 新規追加、更新、削除のロジックを実装。
+- [x] カレンダーのクリックイベント（dateClick）を取得。
+- [x] 予定のタイトルや詳細を入力するモーダル（ダイアログ）UIを作成。
+- [x] 新規追加、更新、削除のロジックを実装。
 
 ### Step 5: エクスポート・インポート機能
-- [ ] 現在のイベント状態をJSON文字列に変換し、Blobを使って .json ファイルとしてダウンロードさせる「エクスポート」ボタンの実装。
-- [ ] ファイルリーダーを使って .json を読み込み、状態を上書きする「インポート」ボタンの実装。
+- [x] 現在のイベント状態をJSON文字列に変換し、Blobを使って .json ファイルとしてダウンロードさせる「エクスポート」ボタンの実装。
+- [x] ファイルリーダーを使って .json を読み込み、状態を上書きする「インポート」ボタンの実装。
+
+## 実施済み作業 (2026-04-13)
+- **環境構築**: `@fullcalendar/react`, `@fullcalendar/daygrid`, `@fullcalendar/timegrid`, `@fullcalendar/interaction`, `dayjs` の導入。
+- **状態管理**: `hooks/useLocalStorage.ts` を作成し、`localStorage` との同期を実装。
+- **UIコンポーネント**: `shadcn/ui` (Tailwind v4 対応) を導入。`Dialog`, `Form`, `Input`, `Textarea`, `Button` 等を使用。
+- **機能実装**: カレンダー上でのドラッグ＆ドロップ、リサイズ、クリックによる予定の作成・編集・削除機能を完備。
+- **データ連携**: JSON形式でのインポート/エクスポートボタンをヘッダーに実装。
+- **ビルド確認**: TypeScriptの型エラー（FullCalendar v6固有の型インポート）を修正し、`next build` が通ることを確認。
