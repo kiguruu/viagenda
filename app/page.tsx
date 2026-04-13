@@ -1,17 +1,26 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { TravelEvent } from "@/types/event";
-import { EventDropArg, DateSelectArg, EventClickArg } from "@fullcalendar/core";
-import { EventResizeDoneArg } from "@fullcalendar/interaction";
+import { EventDropArg, DateSelectArg, EventClickArg, EventResizeDoneArg } from "@fullcalendar/core";
 import { EventModal } from "@/components/EventModal";
 import { Button } from "@/components/ui/button";
 import { DownloadIcon, UploadIcon, PlusIcon } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const INITIAL_EVENTS: TravelEvent[] = [
   {
@@ -33,10 +42,34 @@ const INITIAL_EVENTS: TravelEvent[] = [
 ];
 
 export default function Home() {
-  const [events, setEvents] = useLocalStorage<TravelEvent[]>("travel-events", INITIAL_EVENTS);
+  const [events, setEvents, getStoredData] = useLocalStorage<TravelEvent[]>("travel-events", INITIAL_EVENTS);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Partial<TravelEvent> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // localStorage からの読み込み確認用
+  const [showLoadConfirm, setShowLoadConfirm] = useState(false);
+  const [pendingEvents, setPendingEvents] = useState<TravelEvent[] | null>(null);
+
+  // マウント時に localStorage をチェック
+  useEffect(() => {
+    const data = getStoredData();
+    if (data && data.length > 0) {
+      setPendingEvents(data);
+      setShowLoadConfirm(true);
+    }
+  }, []);
+
+  const handleConfirmLoad = () => {
+    if (pendingEvents) {
+      setEvents(pendingEvents);
+    }
+    setShowLoadConfirm(false);
+  };
+
+  const handleDiscardLoad = () => {
+    setShowLoadConfirm(false);
+  };
 
   // 新規追加ボタン用
   const handleAddNew = () => {
@@ -210,6 +243,22 @@ export default function Home() {
         onDelete={handleEventDelete}
         initialEvent={selectedEvent}
       />
+
+      <AlertDialog open={showLoadConfirm} onOpenChange={setShowLoadConfirm}>
+        <AlertDialogContent className="bg-white text-slate-900">
+          <AlertDialogHeader>
+            <AlertDialogTitle>保存されたデータの読み込み</AlertDialogTitle>
+            <AlertDialogDescription>
+              ブラウザに保存されている旅行日程が見つかりました。このデータを読み込みますか？
+              「いいえ」を選択すると、初期データから開始します。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleDiscardLoad}>いいえ、新しい日程から始める</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmLoad}>はい、読み込む</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }
