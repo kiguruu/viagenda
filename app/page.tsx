@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -55,10 +55,14 @@ export default function Home() {
   useEffect(() => {
     const data = getStoredData();
     if (data && data.length > 0) {
-      setPendingEvents(data);
-      setShowLoadConfirm(true);
+      // 非同期的に呼び出すことで、レンダリング中（cascading render）の警告を回避
+      const timer = setTimeout(() => {
+        setPendingEvents(data);
+        setShowLoadConfirm(true);
+      }, 0);
+      return () => clearTimeout(timer);
     }
-  }, []);
+  }, [getStoredData]);
 
   const handleConfirmLoad = () => {
     if (pendingEvents) {
@@ -96,7 +100,7 @@ export default function Home() {
   };
 
   // モーダルからの保存処理
-  const handleModalSubmit = (newEvent: TravelEvent) => {
+  const handleModalSubmit = useCallback((newEvent: TravelEvent) => {
     const existingIndex = events.findIndex((e) => e.id === newEvent.id);
     if (existingIndex > -1) {
       const updatedEvents = [...events];
@@ -105,12 +109,12 @@ export default function Home() {
     } else {
       setEvents([...events, newEvent]);
     }
-  };
+  }, [events, setEvents]);
 
   // 削除処理
-  const handleEventDelete = (id: string) => {
+  const handleEventDelete = useCallback((id: string) => {
     setEvents(events.filter((e) => e.id !== id));
-  };
+  }, [events, setEvents]);
 
   // ドラッグ＆ドロップ移動
   const handleEventDrop = (info: EventDropArg) => {

@@ -7,7 +7,7 @@ const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
 
 const window = dom.window;
 
-// @ts-ignore
+// @ts-expect-error - JSDOM window is not perfectly compatible with global window type
 global.window = window;
 global.document = window.document;
 global.navigator = window.navigator;
@@ -26,11 +26,13 @@ global.PointerEvent = window.PointerEvent;
 global.CustomEvent = window.CustomEvent;
 global.localStorage = window.localStorage;
 global.sessionStorage = window.sessionStorage;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 global.crypto = window.crypto as any;
 global.DOMParser = window.DOMParser;
 global.XMLSerializer = window.XMLSerializer;
 
 // アニメーション関連のモック
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 global.requestAnimationFrame = (callback) => setTimeout(callback, 0) as any;
 global.cancelAnimationFrame = (id) => clearTimeout(id);
 

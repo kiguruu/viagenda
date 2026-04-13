@@ -6,8 +6,10 @@ import { TravelEvent } from "@/types/event";
 
 describe("EventModal", () => {
   const mockOnClose = mock(() => {});
-  const mockOnSubmit = mock((event: TravelEvent) => {});
-  const mockOnDelete = mock((id: string) => {});
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const mockOnSubmit = mock((_event: TravelEvent) => {});
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const mockOnDelete = mock((_id: string) => {});
 
   beforeEach(() => {
     mockOnClose.mockClear();
