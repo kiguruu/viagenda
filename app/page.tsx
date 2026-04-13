@@ -11,7 +11,7 @@ import { EventDropArg, DateSelectArg, EventClickArg } from "@fullcalendar/core";
 import { EventResizeDoneArg } from "@fullcalendar/interaction";
 import { EventModal } from "@/components/EventModal";
 import { Button } from "@/components/ui/button";
-import { DownloadIcon, UploadIcon, PlusIcon, CalendarIcon } from "lucide-react";
+import { DownloadIcon, UploadIcon, PlusIcon, CalendarIcon, TrashIcon } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -75,6 +75,9 @@ export default function Home() {
   const [showLoadConfirm, setShowLoadConfirm] = useState(false);
   const [pendingEvents, setPendingEvents] = useState<TravelEvent[] | null>(null);
 
+  // 全て削除の確認用
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+
   // マウント時に localStorage をチェック
   useEffect(() => {
     const data = getStoredData();
@@ -102,6 +105,11 @@ export default function Home() {
   const handleStartEmpty = () => {
     setEvents([]);
     setShowLoadConfirm(false);
+  };
+
+  const handleClearAll = () => {
+    setEvents([]);
+    setShowClearConfirm(false);
   };
 
   // 新規追加ボタン用
@@ -248,9 +256,9 @@ export default function Home() {
         } else {
           alert("不正なファイル形式です。");
         }
-      } catch (error) {
-        console.error(error);
-        alert("ファイルの読み込みに失敗しました。");
+      } catch {
+        // console.error() を呼ぶとNext.jsの開発サーバーがエラーオーバーレイを表示してしまうため削除
+        alert("ファイルの読み込みに失敗しました。正しいJSONファイルを選択してください。");
       }
     };
     reader.readAsText(file);
@@ -288,6 +296,10 @@ export default function Home() {
               ICS出力
             </Button>
           </div>
+          <Button variant="outline" size="sm" onClick={() => setShowClearConfirm(true)} className="text-destructive hover:text-destructive border-destructive/20 hover:bg-destructive/10">
+            <TrashIcon className="size-4" data-icon="inline-start" />
+            全て削除
+          </Button>
           <Button size="sm" onClick={handleAddNew}>
             <PlusIcon className="size-4" data-icon="inline-start" />
             予定を追加
@@ -356,6 +368,26 @@ export default function Home() {
                 はい、読み込む
               </AlertDialogAction>
             </div>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+        <AlertDialogContent className="bg-white text-slate-900">
+          <AlertDialogHeader>
+            <AlertDialogTitle>すべての予定を削除</AlertDialogTitle>
+            <AlertDialogDescription>
+              カレンダー上のすべての予定を削除します。この操作は取り消せません。本当によろしいですか？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>キャンセル</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleClearAll} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              削除する
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
