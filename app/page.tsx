@@ -1,13 +1,14 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { TravelEvent } from "@/types/event";
-import { EventDropArg, DateSelectArg, EventClickArg, EventResizeDoneArg } from "@fullcalendar/core";
+import { EventDropArg, DateSelectArg, EventClickArg } from "@fullcalendar/core";
+import { EventResizeDoneArg } from "@fullcalendar/interaction";
 import { EventModal } from "@/components/EventModal";
 import { Button } from "@/components/ui/button";
 import { DownloadIcon, UploadIcon, PlusIcon, CalendarIcon } from "lucide-react";
@@ -22,28 +23,50 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { createEvents, EventAttributes } from "ics";
+import dayjs from "dayjs";
 
-const INITIAL_EVENTS: TravelEvent[] = [
-  {
-    id: "event-001",
-    title: "札幌駅到着",
-    start: "2026-05-01T10:00:00",
-    end: "2026-05-01T10:30:00",
-    description: "快速エアポートで到着",
-    location: "札幌駅"
-  },
-  {
-    id: "event-002",
-    title: "余市蒸溜所見学",
-    start: "2026-05-02T13:00:00",
-    end: "2026-05-02T15:00:00",
-    description: "試飲あり。事前に予約チケットの確認。",
-    location: "ニッカウヰスキー 北海道工場 余市蒸溜所"
-  }
-];
+// 初期のチュートリアル用日程を生成する関数
+const getInitialEvents = (): TravelEvent[] => {
+  const today = dayjs().format("YYYY-MM-DD");
+  const tomorrow = dayjs().add(1, "day").format("YYYY-MM-DD");
+
+  return [
+    {
+      id: "tutorial-001",
+      title: "Viagendaへようこそ！ 👋",
+      start: `${today}T09:00:00`,
+      end: `${today}T10:00:00`,
+      description: "これは旅行日程を管理するアプリです。直感的に予定を操作できます！",
+      location: "はじまりの場所"
+    },
+    {
+      id: "tutorial-002",
+      title: "予定をドラッグして移動してみてね 🎯",
+      start: `${today}T11:00:00`,
+      end: `${today}T12:30:00`,
+      description: "マウスで掴んで、好きな時間に移動させてみましょう。",
+    },
+    {
+      id: "tutorial-003",
+      title: "端を伸ばして時間を調整！ ↔️",
+      start: `${today}T14:00:00`,
+      end: `${today}T16:00:00`,
+      description: "予定の下端をドラッグすると、長さを変更できます。",
+    },
+    {
+      id: "tutorial-004",
+      title: "クリックして詳細を編集 or 削除 📝",
+      start: `${tomorrow}T10:00:00`,
+      end: `${tomorrow}T12:00:00`,
+      description: "予定をクリックすると、この説明文や場所を書き換えることができます。",
+      location: "編集モーダルの中"
+    }
+  ];
+};
 
 export default function Home() {
-  const [events, setEvents, getStoredData] = useLocalStorage<TravelEvent[]>("travel-events", INITIAL_EVENTS);
+  const initialEvents = useMemo(() => getInitialEvents(), []);
+  const [events, setEvents, getStoredData] = useLocalStorage<TravelEvent[]>("travel-events", initialEvents);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Partial<TravelEvent> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,7 +94,13 @@ export default function Home() {
     setShowLoadConfirm(false);
   };
 
-  const handleDiscardLoad = () => {
+  const handleStartWithTutorial = () => {
+    setEvents(initialEvents);
+    setShowLoadConfirm(false);
+  };
+
+  const handleStartEmpty = () => {
+    setEvents([]);
     setShowLoadConfirm(false);
   };
 
@@ -152,7 +181,7 @@ export default function Home() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `viagenda-export-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `viagenda-export-${dayjs().format("YYYY-MM-DD")}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -197,7 +226,7 @@ export default function Home() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `viagenda-itinerary-${new Date().toISOString().split('T')[0]}.ics`;
+      link.download = `viagenda-itinerary-${dayjs().format("YYYY-MM-DD")}.ics`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -270,7 +299,6 @@ export default function Home() {
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="timeGridWeek"
-          initialDate="2026-05-01"
           headerToolbar={{
             left: "prev,next today",
             center: "title",
@@ -301,17 +329,33 @@ export default function Home() {
       />
 
       <AlertDialog open={showLoadConfirm} onOpenChange={setShowLoadConfirm}>
-        <AlertDialogContent className="bg-white text-slate-900">
+        <AlertDialogContent className="bg-white text-slate-900 sm:w-auto w-full flex flex-col">
           <AlertDialogHeader>
             <AlertDialogTitle>保存されたデータの読み込み</AlertDialogTitle>
             <AlertDialogDescription>
               ブラウザに保存されている旅行日程が見つかりました。このデータを読み込みますか？
-              「いいえ」を選択すると、初期データから開始します。
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleDiscardLoad}>いいえ、新しい日程から始める</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmLoad}>はい、読み込む</AlertDialogAction>
+          <AlertDialogFooter className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center sm:justify-between gap-4 w-full">
+            <AlertDialogCancel 
+              onClick={handleStartEmpty} 
+              className="border-destructive/20 text-destructive hover:bg-destructive/10 m-0"
+            >
+              空の日程で始める
+            </AlertDialogCancel>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <AlertDialogAction 
+                onClick={handleStartWithTutorial} 
+                variant="outline"
+              >
+                チュートリアルを表示
+              </AlertDialogAction>
+              <AlertDialogAction 
+                onClick={handleConfirmLoad}
+              >
+                はい、読み込む
+              </AlertDialogAction>
+            </div>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
