@@ -104,4 +104,25 @@ describe("EventModal", () => {
 
     expect(mockOnDelete).toHaveBeenCalledWith("event-123");
   });
+
+  test("終了日時が開始日時より前なら保存されずエラーが表示されること", async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    await user.type(screen.getByLabelText("タイトル"), "逆転した予定");
+
+    fireEvent.change(screen.getByLabelText("開始日時"), {
+      target: { value: "2026-05-01T12:00" },
+    });
+    fireEvent.change(screen.getByLabelText("終了日時"), {
+      target: { value: "2026-05-01T10:00" },
+    });
+
+    await user.click(screen.getByRole("button", { name: "保存" }));
+
+    await waitFor(() => {
+      expect(mockOnSubmit).not.toHaveBeenCalled();
+      expect(screen.getByText("終了日時は開始日時以降にしてください")).toBeTruthy();
+    });
+  });
 });

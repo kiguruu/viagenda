@@ -5,13 +5,14 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { StoredDataResult, useLocalStorage } from "@/hooks/useLocalStorage";
 import { TravelEvent } from "@/types/event";
 import { EventDropArg, DateSelectArg, EventClickArg } from "@fullcalendar/core";
 import { EventResizeDoneArg } from "@fullcalendar/interaction";
 import { EventModal } from "@/components/EventModal";
 import { Button } from "@/components/ui/button";
-import { DownloadIcon, UploadIcon, PlusIcon, CalendarIcon, TrashIcon } from "lucide-react";
+import { DownloadIcon, UploadIcon, PlusIcon, CalendarIcon, TrashIcon, SunIcon, MoonIcon, AlertTriangleIcon, XIcon } from "lucide-react";
+import { useTheme } from "next-themes";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +25,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import { createEvents, EventAttributes } from "ics";
 import dayjs from "dayjs";
+import { parseTravelEvents } from "@/lib/event-schema";
+import { updateEventSchedule } from "@/lib/event-updates";
+import { validateEventsForExport } from "@/lib/event-export";
 
 // 初期のチュートリアル用日程を生成する関数
 const getInitialEvents = (): TravelEvent[] => {
@@ -64,7 +68,18 @@ const getInitialEvents = (): TravelEvent[] => {
   ];
 };
 
-export default function Home() {
+type Notice = {
+  message: string;
+  tone: "warning" | "error";
+};
+
+type HomePageProps = {
+  eventsOverride?: TravelEvent[];
+  storedDataOverride?: StoredDataResult<TravelEvent[]>;
+};
+
+export function HomePage({ eventsOverride, storedDataOverride }: HomePageProps = {}) {
+  const { setTheme, theme } = useTheme();
   const initialEvents = useMemo(() => getInitialEvents(), []);
   const [events, setEvents, getStoredData] = useLocalStorage<TravelEvent[]>("travel-events", initialEvents);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -74,21 +89,49 @@ export default function Home() {
   // localStorage からの読み込み確認用
   const [showLoadConfirm, setShowLoadConfirm] = useState(false);
   const [pendingEvents, setPendingEvents] = useState<TravelEvent[] | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
 
   // 全て削除の確認用
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
+  const showNotice = useCallback((message: string, tone: Notice["tone"] = "error") => {
+    setNotice({ message, tone });
+  }, []);
+
+  const currentEvents = eventsOverride ?? events;
+  const getStoredDataResult = useCallback(
+    () => storedDataOverride ?? getStoredData(),
+    [storedDataOverride, getStoredData],
+  );
+
   // マウント時に localStorage をチェック
   useEffect(() => {
-    const data = getStoredData();
-    if (data && data.length > 0) {
+    const storedData = getStoredDataResult();
+
+    if (storedData.status === "invalid") {
       const timer = setTimeout(() => {
-        setPendingEvents(data);
+        showNotice("ブラウザに保存されていた日程データの読み込みに失敗したため、保存データを無視しました。必要であれば JSON を見直して再インポートしてください。", "warning");
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+
+    const parsed = parseTravelEvents(storedData.data);
+
+    if (parsed.success && parsed.data.length > 0) {
+      const timer = setTimeout(() => {
+        setPendingEvents(parsed.data);
         setShowLoadConfirm(true);
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [getStoredData]);
+
+    if (storedData.status === "valid" && storedData.data !== null) {
+      const timer = setTimeout(() => {
+        showNotice("ブラウザに保存されていた日程データに不正な内容が含まれていたため、読み込みをスキップしました。必要であれば JSON を見直して再インポートしてください。", "warning");
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [getStoredDataResult, showNotice]);
 
   const handleConfirmLoad = () => {
     if (pendingEvents) {
@@ -129,7 +172,7 @@ export default function Home() {
 
   // 既存のイベントをクリックした時
   const handleEventClick = (clickInfo: EventClickArg) => {
-    const event = events.find((e) => e.id === clickInfo.event.id);
+    const event = currentEvents.find((e) => e.id === clickInfo.event.id);
     if (event) {
       setSelectedEvent(event);
       setIsModalOpen(true);
@@ -138,54 +181,66 @@ export default function Home() {
 
   // モーダルからの保存処理
   const handleModalSubmit = useCallback((newEvent: TravelEvent) => {
-    const existingIndex = events.findIndex((e) => e.id === newEvent.id);
+    const existingIndex = currentEvents.findIndex((e) => e.id === newEvent.id);
     if (existingIndex > -1) {
-      const updatedEvents = [...events];
+      const updatedEvents = [...currentEvents];
       updatedEvents[existingIndex] = newEvent;
       setEvents(updatedEvents);
     } else {
-      setEvents([...events, newEvent]);
+      setEvents([...currentEvents, newEvent]);
     }
-  }, [events, setEvents]);
+  }, [currentEvents, setEvents]);
 
   // 削除処理
   const handleEventDelete = useCallback((id: string) => {
-    setEvents(events.filter((e) => e.id !== id));
-  }, [events, setEvents]);
+    setEvents(currentEvents.filter((e) => e.id !== id));
+  }, [currentEvents, setEvents]);
 
   // ドラッグ＆ドロップ移動
   const handleEventDrop = (info: EventDropArg) => {
-    const updatedEvents = events.map((event) => {
-      if (event.id === info.event.id) {
-        return {
-          ...event,
-          start: info.event.startStr,
-          end: info.event.endStr || info.event.startStr,
-        };
-      }
-      return event;
-    });
+    const updatedEvents = updateEventSchedule(
+      currentEvents,
+      info.event.id,
+      info.event.startStr,
+      info.event.endStr || info.event.startStr,
+    );
+
+    if (!updatedEvents) {
+      info.revert();
+      showNotice("予定の更新に失敗しました。日時の内容を確認してください。");
+      return;
+    }
+
     setEvents(updatedEvents);
   };
 
   // リサイズ
   const handleEventResize = (info: EventResizeDoneArg) => {
-    const updatedEvents = events.map((event) => {
-      if (event.id === info.event.id) {
-        return {
-          ...event,
-          start: info.event.startStr,
-          end: info.event.endStr || info.event.startStr,
-        };
-      }
-      return event;
-    });
+    const updatedEvents = updateEventSchedule(
+      currentEvents,
+      info.event.id,
+      info.event.startStr,
+      info.event.endStr || info.event.startStr,
+    );
+
+    if (!updatedEvents) {
+      info.revert();
+      showNotice("予定の更新に失敗しました。日時の内容を確認してください。");
+      return;
+    }
+
     setEvents(updatedEvents);
   };
 
   // エクスポート (JSON)
   const handleExportJSON = () => {
-    const blob = new Blob([JSON.stringify(events, null, 2)], { type: "application/json" });
+    const validatedEvents = validateEventsForExport(currentEvents);
+    if (!validatedEvents) {
+      showNotice("不正なイベントデータが含まれているため、JSON出力を中止しました。");
+      return;
+    }
+
+    const blob = new Blob([JSON.stringify(validatedEvents, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -198,7 +253,13 @@ export default function Home() {
 
   // エクスポート (.ics)
   const handleExportICS = () => {
-    const icsEvents: EventAttributes[] = events.map((event) => {
+    const validatedEvents = validateEventsForExport(currentEvents);
+    if (!validatedEvents) {
+      showNotice("不正なイベントデータが含まれているため、ICS出力を中止しました。");
+      return;
+    }
+
+    const icsEvents: EventAttributes[] = validatedEvents.map((event) => {
       const start = new Date(event.start);
       const end = new Date(event.end);
 
@@ -226,7 +287,7 @@ export default function Home() {
     createEvents(icsEvents, (error, value) => {
       if (error) {
         console.error(error);
-        alert("iCalendar形式の生成に失敗しました。");
+        showNotice("iCalendar形式の生成に失敗しました。");
         return;
       }
 
@@ -251,14 +312,17 @@ export default function Home() {
     reader.onload = (event) => {
       try {
         const json = JSON.parse(event.target?.result as string);
-        if (Array.isArray(json)) {
-          setEvents(json);
-        } else {
-          alert("不正なファイル形式です。");
+        const parsed = parseTravelEvents(json);
+
+        if (!parsed.success) {
+          showNotice("不正なイベントデータです。JSON形式と日時の内容を確認してください。");
+          return;
         }
+
+        setEvents(parsed.data);
       } catch {
         // console.error() を呼ぶとNext.jsの開発サーバーがエラーオーバーレイを表示してしまうため削除
-        alert("ファイルの読み込みに失敗しました。正しいJSONファイルを選択してください。");
+        showNotice("ファイルの読み込みに失敗しました。正しいJSONファイルを選択してください。");
       }
     };
     reader.readAsText(file);
@@ -266,7 +330,7 @@ export default function Home() {
   };
 
   return (
-    <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full text-slate-900">
+    <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
       <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Viagenda</h1>
@@ -274,7 +338,17 @@ export default function Home() {
             旅行の日程を直感的に管理しましょう。
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="rounded-full w-8 h-8"
+          >
+            <SunIcon className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+            <MoonIcon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <span className="sr-only">テーマ切り替え</span>
+          </Button>
           <input
             type="file"
             ref={fileInputRef}
@@ -307,7 +381,35 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="bg-white rounded-xl shadow-sm border p-4">
+      {notice && (
+        <div
+          className={`mb-6 flex items-start justify-between gap-4 rounded-xl border px-4 py-3 text-sm ${
+            notice.tone === "warning"
+              ? "border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-100"
+              : "border-destructive/30 bg-destructive/10 text-destructive dark:text-destructive"
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
+            <p>{notice.message}</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`h-7 w-7 shrink-0 rounded-full ${
+              notice.tone === "warning"
+                ? "text-amber-900 hover:bg-amber-500/15 hover:text-amber-950 dark:text-amber-100 dark:hover:bg-amber-500/20 dark:hover:text-amber-50"
+                : "text-destructive hover:bg-destructive/15 hover:text-destructive dark:text-destructive dark:hover:bg-destructive/20"
+            }`}
+            onClick={() => setNotice(null)}
+          >
+            <XIcon className="size-4" />
+            <span className="sr-only">通知を閉じる</span>
+          </Button>
+        </div>
+      )}
+
+      <div className="bg-card text-card-foreground rounded-xl shadow-sm border p-4">
         <FullCalendar
           plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
           initialView="timeGridWeek"
@@ -317,7 +419,7 @@ export default function Home() {
             right: "dayGridMonth,timeGridWeek,timeGridDay",
           }}
           locale="ja"
-          events={events}
+          events={currentEvents}
           height="auto"
           stickyHeaderDates={true}
           nowIndicator={true}
@@ -341,7 +443,7 @@ export default function Home() {
       />
 
       <AlertDialog open={showLoadConfirm} onOpenChange={setShowLoadConfirm}>
-        <AlertDialogContent className="bg-white text-slate-900 sm:w-auto w-full flex flex-col">
+        <AlertDialogContent className="sm:w-auto w-full flex flex-col">
           <AlertDialogHeader>
             <AlertDialogTitle>保存されたデータの読み込み</AlertDialogTitle>
             <AlertDialogDescription>
@@ -373,7 +475,7 @@ export default function Home() {
       </AlertDialog>
 
       <AlertDialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
-        <AlertDialogContent className="bg-white text-slate-900">
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>すべての予定を削除</AlertDialogTitle>
             <AlertDialogDescription>
@@ -393,4 +495,8 @@ export default function Home() {
       </AlertDialog>
     </main>
   );
+}
+
+export default function Home() {
+  return <HomePage />;
 }

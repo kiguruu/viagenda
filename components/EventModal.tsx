@@ -3,7 +3,6 @@
 import React, { useEffect, useId } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import {
   Dialog,
   DialogContent,
@@ -22,16 +21,10 @@ import {
 } from "@/components/ui/field";
 import { TravelEvent } from "@/types/event";
 import dayjs from "dayjs";
+import { travelEventFormSchema } from "@/lib/event-schema";
+import { z } from "zod";
 
-const formSchema = z.z.object({
-  title: z.string().min(1, "タイトルを入力してください"),
-  start: z.string().min(1, "開始日時を入力してください"),
-  end: z.string().min(1, "終了日時を入力してください"),
-  description: z.string().optional(),
-  location: z.string().optional(),
-});
-
-type FormValues = z.infer<typeof formSchema>;
+type FormValues = z.infer<typeof travelEventFormSchema>;
 
 interface EventModalProps {
   isOpen: boolean;
@@ -60,7 +53,7 @@ export function EventModal({
     reset,
     formState: { errors },
   } = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(travelEventFormSchema),
     defaultValues: {
       title: "",
       start: "",
@@ -102,7 +95,7 @@ export function EventModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px] bg-white text-slate-900">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
             {initialEvent?.id ? "予定を編集" : "新しい予定を追加"}

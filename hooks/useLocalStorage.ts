@@ -1,19 +1,30 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
+export type StoredDataResult<T> =
+  | { status: "missing"; data: null }
+  | { status: "valid"; data: T }
+  | { status: "invalid"; data: null };
+
 export function useLocalStorage<T>(key: string, initialValue: T) {
   // 状態の初期化
   const [storedValue, setStoredValue] = useState<T>(initialValue);
   const isFirstRender = useRef(true);
 
   // 初回マウント時に保存されているデータを取得（自動で反映はしない）
-  const getStoredData = useCallback((): T | null => {
-    if (typeof window === "undefined") return null;
+  const getStoredData = useCallback((): StoredDataResult<T> => {
+    if (typeof window === "undefined") {
+      return { status: "missing", data: null };
+    }
     try {
       const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : null;
+      if (!item) {
+        return { status: "missing", data: null };
+      }
+
+      return { status: "valid", data: JSON.parse(item) };
     } catch (error) {
       console.error(error);
-      return null;
+      return { status: "invalid", data: null };
     }
   }, [key]);
 

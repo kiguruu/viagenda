@@ -37,6 +37,15 @@ describe("useLocalStorage", () => {
     const { result } = renderHook(() => useLocalStorage(TEST_KEY, INITIAL_VALUE));
     
     const storedData = result.current[2]();
-    expect(storedData).toEqual(EXISTING_VALUE);
+    expect(storedData).toEqual({ status: "valid", data: EXISTING_VALUE });
+  });
+
+  test("getStoredData で壊れた localStorage データを invalid として返すこと", () => {
+    window.localStorage.setItem(TEST_KEY, "{broken-json");
+
+    const { result } = renderHook(() => useLocalStorage(TEST_KEY, INITIAL_VALUE));
+
+    const storedData = result.current[2]();
+    expect(storedData).toEqual({ status: "invalid", data: null });
   });
 });

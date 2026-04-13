@@ -117,6 +117,28 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* FullCalendar Theming */
+:root {
+  --fc-border-color: var(--border);
+  --fc-button-text-color: var(--primary-foreground);
+  --fc-button-bg-color: var(--primary);
+  --fc-button-border-color: var(--primary);
+  --fc-button-hover-bg-color: var(--primary);
+  --fc-button-hover-border-color: var(--primary);
+  --fc-button-active-bg-color: var(--primary);
+  --fc-button-active-border-color: var(--primary);
+  --fc-event-bg-color: var(--primary);
+  --fc-event-border-color: var(--primary);
+  --fc-event-text-color: var(--primary-foreground);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: var(--muted);
+  --fc-neutral-text-color: var(--muted-foreground);
+  --fc-today-bg-color: var(--accent);
+  --fc-now-indicator-color: var(--destructive);
+  --fc-highlight-color: var(--muted);
+  --fc-non-business-color: var(--muted);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
