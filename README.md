@@ -1,36 +1,112 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Viagenda
 
-## Getting Started
+旅行日程を直感的に管理するための、Google カレンダー風 Web アプリです。  
+Next.js + TypeScript をベースに、FullCalendar を使ったカレンダー UI と、`localStorage` によるローカル保存を組み合わせています。
 
-First, run the development server:
+## 主な機能
+
+- 月 / 週 / 日ビューのカレンダー表示
+- 予定の追加、編集、削除
+- ドラッグ＆ドロップによる予定移動
+- リサイズによる終了時刻変更
+- JSON インポート / エクスポート
+- `.ics` エクスポート
+- 全件削除
+- ライト / ダークテーマ切り替え
+- **洗練された UI**: `Lexend` フォントとグラデーションタイトル、`Vercel Web Interface Guidelines` に基づくアクセシビリティ対応。
+
+## データ保存
+
+予定データはブラウザの `localStorage` に `travel-events` キーで保存されます。  
+保存済みデータがある場合は、起動時に読み込むかどうかを確認します。
+
+不正な保存データや不正なインポートデータは、Zod スキーマで検証してから扱います。  
+不正なデータは読み込みや出力を中止し、画面内通知で理由を表示します。
+
+## 技術スタック
+
+- Next.js 16
+- React 19
+- TypeScript
+- FullCalendar v6
+- Tailwind CSS v4
+- shadcn/ui ベースの UI
+- `dayjs`
+- `react-hook-form`
+- `zod`
+- `next-themes`
+- Playwright
+
+## セットアップ
+
+依存をインストールします。
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+bun install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+開発サーバーを起動します。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+bun run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+ブラウザで `http://localhost:3000` を開いてください。
 
-## Learn More
+## スクリプト
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+bun run dev
+bun run build
+bun run start
+bun run lint
+bun test
+bun run e2e
+bun run e2e:headed
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## テスト
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 方針と品質
 
-## Deploy on Vercel
+このプロジェクトでは、個人開発のスピード感とメンテナンス性のバランスを保つため、以下の点にこだわってテストを書いています。
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **堅牢なバリデーション**: 「開始日時 > 終了日時」などの不正なデータが保存されたり読み込まれたりしないよう、ロジック・UI・インポートの全経路で厳格に検証しています。
+- **異常系への配慮**: 壊れた `localStorage` データや不正な JSON に対する適切なエラー通知をテストで確認しています。
+- **3層のテスト構成**: 単体テスト、ページ統合テスト、Playwright による E2E テストを組み合わせ、重要な機能が壊れていないか多角的に検証しています。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 今後の課題（保守性向上）
+
+- [ ] テスト用モックデータ（Fixtures）の共通化による、データ構造変更への対応力強化。
+- [ ] アサーション（期待値）のより具体的な記述へのブラッシュアップ。
+- [ ] 意図しない `console.error` 等の自動監視による、リファクタリング時の安全性向上。
+
+### 単体 / 統合テスト
+
+`bun test` で以下を確認しています。
+
+- `useLocalStorage` の保存・読込・破損データ検出
+- イベントスキーマの検証
+- エクスポート前バリデーション
+- ドラッグ / リサイズ更新時の検証
+- `EventModal` の入力と日時整合性チェック
+- `app/page.tsx` の通知表示、保存データ読込、出力中止の統合テスト
+
+### E2E テスト
+
+`bun run e2e` で Playwright による最小限の E2E を実行します。
+
+- ホーム画面の基本表示
+- 不正 JSON インポート時の通知表示
+- 保存済みデータがある場合の復元ダイアログ表示
+
+Chromium が未導入の場合は、事前に以下を実行してください。
+
+```bash
+bunx playwright install chromium
+```
+
+## 注意点
+
+- `app/layout.tsx` では `next/font/google` を使っています。ネットワーク制限のある環境ではフォント取得でビルドに失敗することがあります。
+- このプロジェクトでは Next.js 16 系を使っているため、実装変更時はプロジェクト内の指示に従って最新ドキュメントを確認する前提です。

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { TravelEvent } from "@/types/event";
@@ -42,6 +42,7 @@ describe("Home page integration", () => {
   });
 
   test("壊れた localStorage データがあると警告通知を表示すること", async () => {
+    const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
     window.localStorage.setItem("travel-events", "{broken-json");
 
     render(<HomePage />);
@@ -51,6 +52,8 @@ describe("Home page integration", () => {
         screen.getByText("ブラウザに保存されていた日程データの読み込みに失敗したため、保存データを無視しました。必要であれば JSON を見直して再インポートしてください。"),
       ).toBeTruthy();
     });
+
+    consoleSpy.mockRestore();
   });
 
   test("構造不正な保存データは読み込まず警告通知を表示すること", async () => {
@@ -103,6 +106,7 @@ describe("Home page integration", () => {
   });
 
   test("通知バナーを閉じられること", async () => {
+    const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
     const user = userEvent.setup();
     window.localStorage.setItem("travel-events", "{broken-json");
 
@@ -116,6 +120,8 @@ describe("Home page integration", () => {
         screen.queryByText("ブラウザに保存されていた日程データの読み込みに失敗したため、保存データを無視しました。必要であれば JSON を見直して再インポートしてください。"),
       ).toBeNull();
     });
+
+    consoleSpy.mockRestore();
   });
 
   test("保存済みの正常データがあると読み込み確認ダイアログを表示すること", async () => {

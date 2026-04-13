@@ -1,4 +1,4 @@
-import { expect, test, describe, beforeEach } from "bun:test";
+import { expect, test, describe, beforeEach, spyOn } from "bun:test";
 import { renderHook, act } from "@testing-library/react";
 import { useLocalStorage } from "./useLocalStorage";
 
@@ -41,11 +41,14 @@ describe("useLocalStorage", () => {
   });
 
   test("getStoredData で壊れた localStorage データを invalid として返すこと", () => {
+    const consoleSpy = spyOn(console, "error").mockImplementation(() => {});
     window.localStorage.setItem(TEST_KEY, "{broken-json");
 
     const { result } = renderHook(() => useLocalStorage(TEST_KEY, INITIAL_VALUE));
 
     const storedData = result.current[2]();
     expect(storedData).toEqual({ status: "invalid", data: null });
+    
+    consoleSpy.mockRestore();
   });
 });

@@ -8,7 +8,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,7 +96,7 @@ export function EventModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="text-balance">
             {initialEvent?.id ? "予定を編集" : "新しい予定を追加"}
           </DialogTitle>
         </DialogHeader>
@@ -105,10 +104,15 @@ export function EventModal({
           <FieldGroup className="py-4">
             <Field>
               <FieldLabel htmlFor={titleId}>タイトル</FieldLabel>
-              <Input id={titleId} {...register("title")} placeholder="例: 札幌駅到着" />
+              <Input 
+                id={titleId} 
+                {...register("title")} 
+                placeholder="例: 札幌駅到着" 
+                autoComplete="off"
+              />
               <FieldError errors={[errors.title]} />
             </Field>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 tabular-nums">
               <Field>
                 <FieldLabel htmlFor={startId}>開始日時</FieldLabel>
                 <Input id={startId} type="datetime-local" {...register("start")} />
@@ -122,7 +126,12 @@ export function EventModal({
             </div>
             <Field>
               <FieldLabel htmlFor={locationId}>場所</FieldLabel>
-              <Input id={locationId} {...register("location")} placeholder="例: 札幌駅" />
+              <Input 
+                id={locationId} 
+                {...register("location")} 
+                placeholder="例: 札幌駅" 
+                autoComplete="street-address"
+              />
             </Field>
             <Field>
               <FieldLabel htmlFor={descriptionId}>詳細</FieldLabel>
@@ -130,10 +139,11 @@ export function EventModal({
                 id={descriptionId}
                 {...register("description")}
                 placeholder="例: 快速エアポートで到着"
+                autoComplete="off"
               />
             </Field>
           </FieldGroup>
-          <DialogFooter className="flex justify-between sm:justify-between w-full">
+          <div className="flex w-full items-center justify-between gap-2 pt-4">
             <div>
               {initialEvent?.id && onDelete && (
                 <Button
@@ -148,13 +158,13 @@ export function EventModal({
                 </Button>
               )}
             </div>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <Button type="button" variant="outline" onClick={onClose}>
                 キャンセル
               </Button>
               <Button type="submit">保存</Button>
             </div>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

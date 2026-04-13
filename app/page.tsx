@@ -37,7 +37,7 @@ const getInitialEvents = (): TravelEvent[] => {
   return [
     {
       id: "tutorial-001",
-      title: "Viagendaへようこそ！ 👋",
+      title: "Viagendaへようこそ! 👋",
       start: `${today}T09:00:00`,
       end: `${today}T10:00:00`,
       description: "これは旅行日程を管理するアプリです。直感的に予定を操作できます！",
@@ -52,7 +52,7 @@ const getInitialEvents = (): TravelEvent[] => {
     },
     {
       id: "tutorial-003",
-      title: "端を伸ばして時間を調整！ ↔️",
+      title: "端を伸ばして時間を調整！ 🔽",
       start: `${today}T14:00:00`,
       end: `${today}T16:00:00`,
       description: "予定の下端をドラッグすると、長さを変更できます。",
@@ -117,15 +117,19 @@ export function HomePage({ eventsOverride, storedDataOverride }: HomePageProps =
 
     const parsed = parseTravelEvents(storedData.data);
 
-    if (parsed.success && parsed.data.length > 0) {
-      const timer = setTimeout(() => {
-        setPendingEvents(parsed.data);
-        setShowLoadConfirm(true);
-      }, 0);
-      return () => clearTimeout(timer);
+    if (parsed.success) {
+      if (parsed.data.length > 0) {
+        const timer = setTimeout(() => {
+          setPendingEvents(parsed.data);
+          setShowLoadConfirm(true);
+        }, 0);
+        return () => clearTimeout(timer);
+      }
+      // parsed.success だがデータが空の場合は何もしない
+      return;
     }
 
-    if (storedData.status === "valid" && storedData.data !== null) {
+    if (storedData.status === "valid" && storedData.data !== null && Array.isArray(storedData.data) && storedData.data.length > 0) {
       const timer = setTimeout(() => {
         showNotice("ブラウザに保存されていた日程データに不正な内容が含まれていたため、読み込みをスキップしました。必要であれば JSON を見直して再インポートしてください。", "warning");
       }, 0);
@@ -330,23 +334,25 @@ export function HomePage({ eventsOverride, storedDataOverride }: HomePageProps =
   };
 
   return (
-    <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full">
+    <main className="flex-1 p-4 md:p-8 max-w-7xl mx-auto w-full tabular-nums">
       <header className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Viagenda</h1>
+          <h1 className="text-5xl font-normal tracking-wider text-balance font-[family-name:var(--font-lexend)] bg-gradient-to-r from-sky-500 to-blue-800 bg-clip-text text-transparent py-2">Viagenda</h1>
           <p className="text-muted-foreground mt-1">
             旅行の日程を直感的に管理しましょう。
           </p>
         </div>
+
         <div className="flex flex-wrap items-center gap-2">
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="rounded-full w-8 h-8"
+            aria-label={theme === "dark" ? "ライトテーマに切り替え" : "ダークテーマに切り替え"}
           >
-            <SunIcon className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <MoonIcon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <SunIcon className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-transform dark:-rotate-90 dark:scale-0" />
+            <MoonIcon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
             <span className="sr-only">テーマ切り替え</span>
           </Button>
           <input
@@ -370,7 +376,7 @@ export function HomePage({ eventsOverride, storedDataOverride }: HomePageProps =
               ICS出力
             </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={() => setShowClearConfirm(true)} className="text-destructive hover:text-destructive border-destructive/20 hover:bg-destructive/10">
+          <Button variant="destructive" size="sm" onClick={() => setShowClearConfirm(true)}>
             <TrashIcon className="size-4" data-icon="inline-start" />
             全て削除
           </Button>
@@ -451,12 +457,12 @@ export function HomePage({ eventsOverride, storedDataOverride }: HomePageProps =
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center sm:justify-between gap-4 w-full">
-            <AlertDialogCancel 
+            <AlertDialogAction 
               onClick={handleStartEmpty} 
-              className="border-destructive/20 text-destructive hover:bg-destructive/10 m-0"
+              variant="destructive"
             >
               空の日程で始める
-            </AlertDialogCancel>
+            </AlertDialogAction>
             <div className="flex flex-col sm:flex-row gap-2">
               <AlertDialogAction 
                 onClick={handleStartWithTutorial} 
