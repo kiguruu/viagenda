@@ -80,6 +80,7 @@ type HomePageProps = {
 
 export function HomePage({ eventsOverride, storedDataOverride }: HomePageProps = {}) {
   const { setTheme, theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const initialEvents = useMemo(() => getInitialEvents(), []);
   const [events, setEvents, getStoredData] = useLocalStorage<TravelEvent[]>("travel-events", initialEvents);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -103,6 +104,11 @@ export function HomePage({ eventsOverride, storedDataOverride }: HomePageProps =
     () => storedDataOverride ?? getStoredData(),
     [storedDataOverride, getStoredData],
   );
+
+  // マウント状態を管理
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // マウント時に localStorage をチェック
   useEffect(() => {
@@ -339,7 +345,7 @@ export function HomePage({ eventsOverride, storedDataOverride }: HomePageProps =
         <div>
           <h1 className="text-5xl font-normal tracking-wider text-balance font-[family-name:var(--font-lexend)] bg-gradient-to-r from-sky-500 to-blue-800 bg-clip-text text-transparent py-2">Viagenda</h1>
           <p className="text-muted-foreground mt-1">
-            旅行の日程を直感的に管理しましょう。
+            あなただけの旅の予定帳。
           </p>
         </div>
 
@@ -349,7 +355,7 @@ export function HomePage({ eventsOverride, storedDataOverride }: HomePageProps =
             size="icon" 
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="rounded-full w-8 h-8"
-            aria-label={theme === "dark" ? "ライトテーマに切り替え" : "ダークテーマに切り替え"}
+            aria-label={mounted ? (theme === "dark" ? "ライトテーマに切り替え" : "ダークテーマに切り替え") : "テーマ切り替え"}
           >
             <SunIcon className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-transform dark:-rotate-90 dark:scale-0" />
             <MoonIcon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
