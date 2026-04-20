@@ -107,7 +107,10 @@ export function HomePage({ eventsOverride, storedDataOverride }: HomePageProps =
 
   // マウント状態を管理
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // マウント時に localStorage をチェック
